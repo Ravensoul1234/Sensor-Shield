@@ -1,7 +1,13 @@
 # Sensor-Shield
-Main code of a sensor Shield.
+## Main code of a sensor Shield.
 
-Sensors.h ->
+This project is still a work in progress, but here's a short description of it:
+
+Our main objective is to build a Shield, for the ESP32 microcontroller, that can detect more than 200 sensors using an MCP23071 digital port expander.
+To ensure interactivity, the Shield is also equipped with a Nextion HMI Display, where measurements can be seen and interacted with.
+
+
+**Sensors.h ->**
 
     ---contains all of the sensors structs
   
@@ -13,7 +19,7 @@ Sensors.h ->
   
     ---contains #include libraries
 
-main.cpp -> 
+**main.cpp ->** 
 
     ---contains the defined functions main code
   
@@ -23,7 +29,7 @@ main.cpp ->
   
     ---initializes Serial communications for the sensors and a Nextion display
   
-  integrity.dat ->
+  **integrity.dat ->**
   
     ---contains the lib-deps for PlatformIO and their versions
   
