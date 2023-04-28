@@ -75,21 +75,21 @@ BME280DataType BME280Data;      // sensor variable
 #define BME280_SEA_LEVEL_PRESSURE_HPA 1013.25
 
 //----------------------------------------------------------------------------------------------
-void BME280loop(void);
+void BME280loop(void); // called from the loop() as long as the shield is present
 //----------------------------------------------------------------------------------------------
-void BME280ShieldInit(void);
+void BME280ShieldInit(void); // called if the shield was inserted
 //----------------------------------------------------------------------------------------------
-void BME280ShieldDeInit(void);
+void BME280ShieldDeInit(void); // called if the shield is missing
 //----------------------------------------------------------------------------------------------
-void BME280SensorRead(void);
+void BME280SensorRead(void); // called to handle the sensor measurements
 //----------------------------------------------------------------------------------------------
-void BME280SensorInit(void);
+void BME280SensorInit(void); // called if the sensor was inserted
 //----------------------------------------------------------------------------------------------
-void BME280SensorDeinit(void);
+void BME280SensorDeinit(void); // called if the sensor is missing 
 //----------------------------------------------------------------------------------------------
-void BME280UpdateDisplay(void);
+void BME280UpdateDisplay(void); // called to update the Nextion display
 //----------------------------------------------------------------------------------------------
-void BME280GetData(void);
+void BME280GetData(void); // called to extract data from storage array
 //----------------------------------------------------------------------------------------------
 
 
@@ -108,21 +108,21 @@ typedef struct{
 }POTDataType;
 POTDataType POTData;
 
-void POTloop(void);
+void POTloop(void); // called from the loop() as long as the shield is present
 //----------------------------------------------------------------------------------------------
-void POTShieldInit(void);
+void POTShieldInit(void); // called if the shield was inserted
 //----------------------------------------------------------------------------------------------
-void POTSensorInit(void);
+void POTSensorInit(void); // called if the sensor was inserted
 //----------------------------------------------------------------------------------------------
-void POTShieldDeinit(void);
+void POTShieldDeinit(void); // called if the shield is missing
 //----------------------------------------------------------------------------------------------
-void POTSensorDeinit(void);
+void POTSensorDeinit(void); // called if the sensor is missing
 //----------------------------------------------------------------------------------------------
-void POTSensorRead(void);
+void POTSensorRead(void); // called to handle the measurements
 //----------------------------------------------------------------------------------------------
-void POTUpdateDisplay(void);
+void POTUpdateDisplay(void); // called to update the Nextion display
 //----------------------------------------------------------------------------------------------
-void POTGetData(void);
+void POTGetData(void); // called to get the stored data
 //----------------------------------------------------------------------------------------------
 
 
@@ -147,21 +147,21 @@ HWDataType HWData;
 #define HWDT 33
 #define HWSW 32
 
-void HWloop(void);
+void HWloop(void); // called from the loop() as long as the shield is present
 //----------------------------------------------------------------------------------------------
-void HWShieldInit(void);
+void HWShieldInit(void); // called if the shield was inserted
 //----------------------------------------------------------------------------------------------
-void HWSensorInit(void);
+void HWSensorInit(void); // called if the sensor was inserted
 //----------------------------------------------------------------------------------------------
-void HWShieldDeinit(void);
+void HWShieldDeinit(void); // called if the shield is missing
 //----------------------------------------------------------------------------------------------
-void HWSensorDeinit(void);
+void HWSensorDeinit(void); // called if the sensor is missing
 //----------------------------------------------------------------------------------------------
-void HWSensorRead(void);
+void HWSensorRead(void); // called to handle the sensor measurements
 //----------------------------------------------------------------------------------------------
-void HWUpdateDisplay(void);
+void HWUpdateDisplay(void); // called to update the Nextion display
 //----------------------------------------------------------------------------------------------
-void POTisr(void);
+void POTisr(void); // ISR function, works for interrupts in the sensor ports
 //----------------------------------------------------------------------------------------------
 
 
@@ -383,36 +383,36 @@ void SG90RotateWithGivenSpeed(void); // Called when the user wants the motor to 
 //----------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------
 typedef struct{
-    bool bShieldInit;
-    bool bSensorInit;
-    uint8_t ui8CurrentPage;
+    bool bShieldInit; //used to check if the shield was initialized
+    bool bSensorInit; //used to check if the sensor was initialized
+    uint8_t ui8CurrentPage; //Tracks the current page on Nextion Display
 
-    Adafruit_MPU6050 MPU;
+    Adafruit_MPU6050 MPU; //Adafruit_MPU6050 type class, holds the key to measure and use Adafruit functions
 
-    float faccx;
-    float faccy;
-    float faccz;
-    float fgyrox;
-    float fgyroy;
-    float fgyroz;
+    float faccx; //holds the measurement of acceleration in x direction
+    float faccy; //holds the measurement of acceleration in y direction
+    float faccz; //holds the measurement of acceleration in z direction
+    float fgyrox; //holds the measurement of gyoscope in x direction
+    float fgyroy; //holds the measurement of gyroscope in y direction
+    float fgyroz; //holds the measurement of gyroscope in z direction
 
 }MPU6050DataType;
 MPU6050DataType MPU6050Data;
 
 //----------------------------------------------------------------------------------------------
-void MPU6050ShieldInit(void);
+void MPU6050ShieldInit(void); // Called if shield was inserted
 //----------------------------------------------------------------------------------------------
-void MPU6050SensorInit(void);
+void MPU6050SensorInit(void); // Called if sensor is found
 //----------------------------------------------------------------------------------------------
-void MPU6050ShieldDeinit(void);
+void MPU6050ShieldDeinit(void); // Called if shield is missing
 //----------------------------------------------------------------------------------------------
-void MPU6050SensorDeinit(void);
+void MPU6050SensorDeinit(void); // Called if sensor is missing
 //----------------------------------------------------------------------------------------------
-void MPU6050loop(void);
+void MPU6050loop(void); // Sensor loop for measurements/changes in the sensor
 //----------------------------------------------------------------------------------------------
-void MPU6050UpdateDisplay(void);
+void MPU6050UpdateDisplay(void); // Update the Nextion Display with the correct values 
 //----------------------------------------------------------------------------------------------
-void MPU6050Measure(void);
+void MPU6050Measure(void); // Called to handle the masurements
 //----------------------------------------------------------------------------------------------
 
 #endif
