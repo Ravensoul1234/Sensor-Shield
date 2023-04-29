@@ -56,8 +56,7 @@ void loop(){
                               break;
     case MPU6050ShieldID:  // MPU6050
                               MPU6050loop();
-                              break;                        
-                              
+                              break;                                                
   }
 
 
@@ -131,20 +130,16 @@ void MCPReadShieldID(void){
     Wire.beginTransmission(MCPI2CAddress);
     Wire.write(MCPGpioaAddress);
     error = Wire.endTransmission();
-
     if(error){
       MCPShieldID = 0;
       return;
     }
-
     Wire.requestFrom(MCPI2CAddress, 1);
     if(error){
       MCPShieldID = 0;
       return;
     }
-
     delay(50);
-
     if(Wire.available()){
       CurrentRead = (255 - (uint8_t)Wire.read());
       if(CurrentRead != LastRead){
@@ -161,7 +156,6 @@ void MCPReadShieldID(void){
       return;
     }
   }
-
   MCPShieldID = LastRead;
   return;
 }
@@ -349,15 +343,16 @@ void BME280UpdateDisplay(){
     double dTemp;
     uint16_t ui16Temp;
     //================================================
-    ui16Temp = (BME280Data.ui16Temperature[0]/100);
-    if(ui16Temp > 100) ui16Temp = 100;
+    ui16Temp = (uint16_t)map(BME280Data.ui16Temperature[0]/10.0,0,1000,0,255);
+    //(uint16_t)map(POTData.ui16Voltage,0,4095,0,100)
+    //if(ui16Temp > 1000) ui16Temp = 1000;
     Serial2.printf("add 3,0,%u",ui16Temp);
     MCPNextionTXEnd();
     delay(10);
 
     // Humidity
-    ui16Temp = (BME280Data.ui16Humidity[0]/10);
-    if(ui16Temp > 100) ui16Temp = 100;
+    ui16Temp = (uint16_t)map(BME280Data.ui16Humidity[0],0,1000,0,255);
+    //if(ui16Temp > 1000) ui16Temp = 1000;
     Serial2.printf("add 3,1,%u",ui16Temp);
     MCPNextionTXEnd();
     delay(10);
@@ -682,33 +677,24 @@ void JOYloop(void)            // called from the loop() as long as the shield is
   return;
 }
 
-void JOYReadData(void)             // used to read a new distance from the TOF sensor
-{
+void JOYReadData(void){
   // X Value
   JOYData.ui16ADCValueX = analogRead(JOYData.ui8GPIOPinXNo);
-
   // Y Value
   JOYData.ui16ADCValueY = analogRead(JOYData.ui8GPIOPinYNo);
-
   // Switch
   JOYData.bSwitchValue = !digitalRead(JOYData.ui8GPIOPinSWNo);
 
   // Update the LCD
-  while(Serial2.available()){
-    NextionMessage = Serial2.read();
-  }
+  while(Serial2.available()) NextionMessage = Serial2.read();
   if(NextionMessage == 8) JOYData.ui8CurrentPage = 8;
   if(NextionMessage == 9) JOYData.ui8CurrentPage = 9;
 
-  if(JOYData.ui8CurrentPage == 9){
-    JOYUpdateDisplay();
-  }
-
+  if(JOYData.ui8CurrentPage == 9) JOYUpdateDisplay();
   return;
 }
 
-void JOYUpdateDisplay(void)            // used to update the values on the LCD after a new measurement
-{
+void JOYUpdateDisplay(void){
   uint16_t ui16Temp;
 
   // update X
@@ -1302,7 +1288,7 @@ void HCSR04ShieldInit(){
   HCSR04Data.ui64Duration[1] = 0;
   HCSR04Data.fSpeed[0] = 0;
   HCSR04Data.fSpeed[1] = 0;
-  HCSR04Data.fAcceleration = 0;
+  HCSR04Data.fAcceleration[2] = {0};
 
   HCSR04Data.fMeasurementDuration = 0;
   HCSR04Data.ui64UpdateTime = millis();
@@ -1328,7 +1314,7 @@ void HCSR04ShieldDeinit(){
   //Reset the calculated variables
   HCSR04Data.fSpeed[0] = 0;
   HCSR04Data.fSpeed[1] = 0;
-  HCSR04Data.fAcceleration = 0;
+  HCSR04Data.fAcceleration[2] = {0};
   HCSR04Data.fMeasurementDuration = 0;
 
   //Reset the measurement time
@@ -1364,17 +1350,11 @@ void HCSR04loop(){
   while(Serial2.available()){
     NextionMessage = Serial2.read();
   } //Used to read current page, read until buffer is empty
+  if(NextionMessage == 13) HCSR04MeasureSpeed();
+  //HCSR04MeasureDistance();
+  if(NextionMessage == 15) HCSR04MeasureDistance();
 
-  if(NextionMessage == 13){
-    HCSR04MeasureSpeed(); 
-    HCSR04UpdateDisplay();
-    NextionMessage = 15; //Set the current page as 15
-  }
-
-  HCSR04MeasureDistance();
-
-  if(NextionMessage == 15)HCSR04UpdateDisplay();
-
+  HCSR04UpdateDisplay();
   return;
 }
 
@@ -1391,7 +1371,7 @@ void HCSR04UpdateDisplay(){
   MCPNextionTXEnd();
   delay(10);
 
-  sprintf(chTemp,"%2.2lf",HCSR04Data.fAcceleration); //convert to string the measurement
+  sprintf(chTemp,"%2.2lf",HCSR04Data.fAcceleration[0]); //convert to string the measurement
 
   Serial2.printf("t4.txt=\"Acceleration:%s[cm/s^2]\"",chTemp);
   MCPNextionTXEnd();
@@ -1401,25 +1381,33 @@ void HCSR04UpdateDisplay(){
 }
 
 void HCSR04MeasureSpeed(){
-  HCSR04Data.ui64Duration[0] = HCSR04EchoMeasure(); //Measure two distances in the given time frame, with delay()
-  delay(500);
-  HCSR04Data.ui64Duration[1] = HCSR04EchoMeasure();
+  esp_task_wdt_reset();
+  unsigned int i = 0;
+  float speed = 0;
+  for(i ; i < 15; i++){
+    HCSR04Data.ui64Duration[0] = HCSR04EchoMeasure(); //Measure two distances in the given time frame, with delay()
+    delay(10);
+    HCSR04Data.ui64Duration[1] = HCSR04EchoMeasure();
 
-  //The time between two measurements is 12 microseconds and the Duration[1] - Duration[0] in microseconds
-
-  // Calculating the distance
-  HCSR04Data.i16Distance[1] = HCSR04Data.ui64Duration[1] * HCSR04SoundSpeed / 2;
-  HCSR04Data.i16Distance[0] = HCSR04Data.ui64Duration[0] * HCSR04SoundSpeed / 2; //given in cm
-
-  //Calculating the speed
-  HCSR04Data.fSpeed[0] = abs(HCSR04Data.i16Distance[1] - HCSR04Data.i16Distance[0])*2; //cm/seconds
+    //The time between two measurements is 12 microseconds and the Duration[1] - Duration[0] in microseconds
+    // Calculating the distance                                                     //the signal goes twice the same distance
+    HCSR04Data.i16Distance[1] = HCSR04Data.ui64Duration[1] * HCSR04SoundSpeed / 2; //flight duration*soundspeed/2
+    HCSR04Data.i16Distance[0] = HCSR04Data.ui64Duration[0] * HCSR04SoundSpeed / 2; //given in cm
+    //Calculating the speed
+    //cm/ms -> 10^{-1}
+    speed = (HCSR04Data.i16Distance[1] - HCSR04Data.i16Distance[0])/1.012; //speed is stored
+    HCSR04Data.fSpeed[0] += speed; //cm/seconds
+    HCSR04Data.fAcceleration[0] += 2*speed/1.012 ; // 2*(x_1 - x_0)/t^2
+  }
+  HCSR04Data.fSpeed[0] /= (i + 1); //from 0 to 10, there are 10 measurements, but i = 9
+  HCSR04Data.fAcceleration[0] /= (i + 1); //we calculated the average measurement
   return;
 }
 
 void HCSR04MeasureDistance(){
   HCSR04Data.ui64Duration[0] = HCSR04EchoMeasure();
   HCSR04Data.i16Distance[0] = HCSR04Data.ui64Duration[0] * HCSR04SoundSpeed / 2; //given in cm
-  return;
+  return; 
 }
 
 unsigned int HCSR04EchoMeasure(void){
@@ -1625,12 +1613,8 @@ void MPU6050SensorDeinit(){
   MCPNextionTXEnd();
   delay(10);
 
-  MPU6050Data.faccx = 0;
-  MPU6050Data.faccy = 0;
-  MPU6050Data.faccz = 0;
-  MPU6050Data.fgyrox = 0;
-  MPU6050Data.fgyroy = 0;
-  MPU6050Data.fgyroz = 0;
+  MPU6050Data.facc[3] = {0};
+  MPU6050Data.fgyro[3] = {0};
   return;
 }
 
@@ -1652,12 +1636,12 @@ void MPU6050Measure(void){
   sensors_event_t a, g, temp;
   MPU6050Data.MPU.getEvent(&a, &g, &temp);
 
-  MPU6050Data.faccx = a.acceleration.x;
-  MPU6050Data.faccy = a.acceleration.y;
-  MPU6050Data.faccz = a.acceleration.z;
-  MPU6050Data.fgyrox = g.gyro.x;
-  MPU6050Data.fgyroy = g.gyro.x;
-  MPU6050Data.fgyroz = g.gyro.x;
+  MPU6050Data.facc[0] = a.acceleration.x;
+  MPU6050Data.facc[1] = a.acceleration.y;
+  MPU6050Data.facc[2] = a.acceleration.z;
+  MPU6050Data.fgyro[0] = g.gyro.x;
+  MPU6050Data.fgyro[1] = g.gyro.x;
+  MPU6050Data.fgyro[2] = g.gyro.x;
 
   MPU6050UpdateDisplay();
 }
@@ -1668,60 +1652,59 @@ void MPU6050UpdateDisplay(){
   int iTemp;
 
   if(MPU6050Data.ui8CurrentPage == 19){
-    sprintf(chTemp,"%2.2lf", MPU6050Data.faccx); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.facc[0]); //convert to string the measurement
     Serial2.printf("t1.txt=\"a_x=%s [m/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
 
-    sprintf(chTemp,"%2.2lf", MPU6050Data.faccy); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.facc[1]); //convert to string the measurement
     Serial2.printf("t2.txt=\"a_y=%s [m/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
 
-    sprintf(chTemp,"%2.2lf", MPU6050Data.faccz); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.facc[2]); //convert to string the measurement
     Serial2.printf("t4.txt=\"a_z=%s [m/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
 
-    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyrox); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyro[0]); //convert to string the measurement
     Serial2.printf("t5.txt=\"gyro_x=%s [deg/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
 
 
-    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyroy); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyro[1]); //convert to string the measurement
     Serial2.printf("t6.txt=\"gyro_y=%s [deg/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
 
-    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyroz); //convert to string the measurement
+    sprintf(chTemp,"%2.2lf", MPU6050Data.fgyro[2]); //convert to string the measurement
     Serial2.printf("t7.txt=\"gyro_z=%s [deg/s^2]\"", chTemp);
     MCPNextionTXEnd();
     delay(10);
   }
   if(MPU6050Data.ui8CurrentPage == 20){
 
-    iTemp = (int)MPU6050Data.faccx;
+    iTemp = (int)MPU6050Data.facc[0];
     if(iTemp < 0) iTemp *= -1;
     ui16Temp = (uint16_t)iTemp;
     Serial2.printf("add 3,0,%u",ui16Temp);
     MCPNextionTXEnd();
     delay(10);
 
-    iTemp = (int)MPU6050Data.faccy;
+    iTemp = (int)MPU6050Data.facc[1];
     if(iTemp < 0) iTemp *= -1;
     ui16Temp = (uint16_t)iTemp;
     Serial2.printf("add 3,1,%u",ui16Temp);
     MCPNextionTXEnd();
     delay(10);
 
-    iTemp = (int)MPU6050Data.faccz;
+    iTemp = (int)MPU6050Data.facc[2];
     if(iTemp < 0) iTemp *= -1;
     ui16Temp = (uint16_t)iTemp;
     Serial2.printf("add 3,2,%u",ui16Temp);
     MCPNextionTXEnd();
     delay(10);
   }
-
   return;
 }
